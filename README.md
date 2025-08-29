@@ -1,70 +1,88 @@
-# Getting Started with Create React App
+# 경로 탐색 알고리즘 비교 데모 🚀
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+BFS(너비 우선 탐색)와 DFS(깊이 우선 탐색) 알고리즘을 시각적으로 비교할 수 있는 React 애플리케이션입니다.
 
-## Available Scripts
+## 🎯 주요 기능
 
-In the project directory, you can run:
+- **실시간 알고리즘 시각화**: BFS와 DFS가 동시에 실행되어 차이점을 실시간으로 관찰 가능
+- **대화형 도로맵**: 랜덤으로 생성되는 장애물과 도로가 있는 32x32 그리드 맵
+- **성능 비교**: 방문한 셀 수와 최종 경로 길이를 실시간으로 비교
+- **속도 조절**: 탐색 속도를 10ms~500ms로 조절 가능
+- **반응형 디자인**: Tailwind CSS로 구현된 깔끔한 UI
 
-### `npm start`
+## 🎮 사용 방법
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. **새 도로맵 생성**: 랜덤한 장애물이 배치된 새로운 맵 생성
+2. **🚀 대결 시작**: BFS와 DFS 알고리즘이 동시에 경로를 찾기 시작
+3. **속도 조절**: 슬라이더로 탐색 속도 조정
+4. **리셋**: 모든 상태를 초기화
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🎨 색상 의미
 
-### `npm test`
+### BFS (너비 우선 탐색)
+- 🟡 노란색: 현재 탐색 중인 셀
+- 🟠 주황색: 방문한 셀
+- 🔵 파란색: 최종 경로
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### DFS (깊이 우선 탐색)  
+- 🩷 분홍색: 현재 탐색 중인 셀
+- 🩷 연분홍색: 방문한 셀
+- 🟣 보라색: 최종 경로
 
-### `npm run build`
+### 공통
+- 🟢 초록색: 시작점
+- 🔴 빨간색: 목표점
+- ⚫ 검은색: 장애물
+- ⚪ 회색: 도로
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🛠 기술 스택
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- **React 18**: 함수형 컴포넌트와 Hooks 사용
+- **Tailwind CSS**: 유틸리티 기반 CSS 프레임워크
+- **JavaScript ES6+**: 모던 자바스크립트 문법
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 📦 설치 및 실행
 
-### `npm run eject`
+```bash
+# 의존성 설치
+npm install
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# 개발 서버 시작
+npm start
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# 프로덕션 빌드
+npm run build
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+개발 서버 실행 후 [http://localhost:3000](http://localhost:3000)에서 확인할 수 있습니다.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 📁 프로젝트 구조
 
-## Learn More
+```
+src/
+├── App.js                 # 메인 애플리케이션 컴포넌트
+├── mapGeneration.js       # 랜덤 맵 생성 로직
+├── pathfindingAlgorithms.js # BFS, DFS 알고리즘 구현
+└── ...
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🧠 알고리즘 특징
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### BFS (너비 우선 탐색)
+- 최단 경로를 보장
+- 넓게 퍼져나가며 탐색
+- 메모리 사용량이 많을 수 있음
 
-### Code Splitting
+### DFS (깊이 우선 탐색)
+- 한 방향으로 깊게 탐색
+- 스택을 사용한 구현
+- 최단 경로를 보장하지 않음
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🎯 학습 목표
 
-### Analyzing the Bundle Size
+이 프로젝트를 통해 다음을 학습할 수 있습니다:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+1. **알고리즘 시각화**: 추상적인 알고리즘을 시각적으로 이해
+2. **성능 비교**: 서로 다른 알고리즘의 특성과 성능 차이
+3. **React 상태 관리**: 복잡한 상태를 효율적으로 관리하는 방법
+4. **비동기 프로그래밍**: Promise와 async/await 활용
