@@ -25,16 +25,28 @@ function App() {
   const [speed, setSpeed] = useState(100);
 
   useEffect(() => {
-    setMap(generateRoadMap(mapSize, start, goal));
+    const fetchMapData = async () => {
+      try {
+        const response = await fetch('https://558151d9-7672-4129-88c2-c035248ce8c1.mock.pstmn.io/maps');
+        if (response.ok) {
+          const data = await response.json();
+          setMap(data.grid || data);
+        } else {
+          setMap(generateRoadMap(mapSize, start, goal));
+        }
+      } catch (error) {
+        console.error('서버에서 맵을 가져오는데 실패했습니다:', error);
+        setMap(generateRoadMap(mapSize, start, goal));
+      }
+    };
+    
+    fetchMapData();
   }, [mapSize, start, goal]);
 
-  // 중지 플래그를 useRef로 관리
-  const shouldStopRef = { current: false };
 
   // 동시 탐색 시작
   const startDualSearch = async () => {
     setIsSearching(true);
-    shouldStopRef.current = false;
     
     // 모든 상태 초기화
     setBfsVisited(new Set());
@@ -56,7 +68,6 @@ function App() {
           start, 
           goal, 
           speed, 
-          shouldStopRef,
           setBfsCurrentCell,
           setBfsVisited,
           setBfsFinalPath,
@@ -68,7 +79,6 @@ function App() {
           start,
           goal,
           speed,
-          shouldStopRef,
           setDfsCurrentCell,
           setDfsVisited,
           setDfsFinalPath,
@@ -83,9 +93,22 @@ function App() {
   };
 
   // 맵 생성
-  const handleNewMap = () => {
+  const handleNewMap = async () => {
     if (isSearching) return;
-    setMap(generateRoadMap(mapSize, start, goal));
+    
+    try {
+      const response = await fetch('https://558151d9-7672-4129-88c2-c035248ce8c1.mock.pstmn.io/maps');
+      if (response.ok) {
+        const data = await response.json();
+        setMap(data.grid || data);
+      } else {
+        setMap(generateRoadMap(mapSize, start, goal));
+      }
+    } catch (error) {
+      console.error('서버에서 맵을 가져오는데 실패했습니다:', error);
+      setMap(generateRoadMap(mapSize, start, goal));
+    }
+    
     resetAll();
   };
 

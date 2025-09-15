@@ -4,7 +4,6 @@ export const runBFS = async (
   start, 
   goal, 
   speed, 
-  shouldStopRef,
   setBfsCurrentCell,
   setBfsVisited,
   setBfsFinalPath,
@@ -14,7 +13,7 @@ export const runBFS = async (
   const visitedSet = new Set();
   const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 
-  while (queue.length > 0 && !shouldStopRef.current) {
+  while (queue.length > 0) {
     const [row, col, path] = queue.shift();
     const cellKey = `${row}-${col}`;
 
@@ -60,7 +59,6 @@ export const runDFS = async (
   start,
   goal,
   speed,
-  shouldStopRef,
   setDfsCurrentCell,
   setDfsVisited,
   setDfsFinalPath,
@@ -70,7 +68,7 @@ export const runDFS = async (
   const visitedSet = new Set();
   const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 
-  while (stack.length > 0 && !shouldStopRef.current) {
+  while (stack.length > 0) {
     const [row, col, path] = stack.pop();
     const cellKey = `${row}-${col}`;
 
