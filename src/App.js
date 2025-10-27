@@ -579,7 +579,7 @@ function App() {
         </div>
       </div>
 
-      {/* 3자 대결 결과 */}
+      {/* 4자 대결 결과 */}
       {bfsFinished && dfsFinished && dijkstraFinished && dqnFinished && (
         <div className="mt-6 text-center p-4 bg-gray-100 rounded-lg">
           <h3 className="text-xl font-bold mb-2">🏆 4자 대결 결과</h3>
