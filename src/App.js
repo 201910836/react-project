@@ -28,6 +28,7 @@ function App() {
 
   // DQN 상태
   const [dqnPath, setDqnPath] = useState([]);
+  const [dqnVisited, setDqnVisited] = useState(new Set());
   const [dqnCurrentCell, setDqnCurrentCell] = useState(null);
   const [dqnCurrentIndex, setDqnCurrentIndex] = useState(0);
   const [dqnFinished, setDqnFinished] = useState(false);
@@ -94,6 +95,7 @@ function App() {
     setDijkstraFinished(false);
 
     setDqnPath([]);
+    setDqnVisited(new Set());
     setDqnCurrentCell(null);
     setDqnCurrentIndex(0);
     setDqnFinished(false);
@@ -168,6 +170,7 @@ function App() {
           speed,
           setDqnCurrentCell,
           setDqnCurrentIndex,
+          setDqnVisited,
           setDqnFinished
         )
       ]);
@@ -179,16 +182,24 @@ function App() {
   };
 
   // DQN 경로 실행
-  const runDQNPath = async (path, speed, setCurrentCell, setCurrentIndex, setFinished) => {
+  const runDQNPath = async (path, speed, setCurrentCell, setCurrentIndex, setVisited, setFinished) => {
     if (!path || path.length === 0) {
       setFinished(true);
       return;
     }
 
+    const visitedSet = new Set();
     for (let i = 0; i < path.length; i++) {
       const [row, col] = path[i];
+      const cellKey = `${row}-${col}`;
+
       setCurrentCell([row, col]);
       setCurrentIndex(i);
+
+      // 현재까지의 방문 칸들 추가
+      visitedSet.add(cellKey);
+      setVisited(new Set(visitedSet));
+
       await new Promise(resolve => setTimeout(resolve, speed));
     }
 
@@ -235,6 +246,7 @@ function App() {
     setDijkstraFinalPath([]);
     setDijkstraFinished(false);
     setDqnPath([]);
+    setDqnVisited(new Set());
     setDqnCurrentCell(null);
     setDqnCurrentIndex(0);
     setDqnFinished(false);
@@ -323,14 +335,14 @@ function App() {
 
   // 셀 색상 결정 (DQN용)
   const getDQNCellColor = (row, col) => {
-    // 현재까지 진행한 경로만 표시 (현재 인덱스까지만)
-    if (dqnCurrentIndex >= 0 && dqnCurrentIndex < dqnPath.length) {
-      const pathUpToCurrent = dqnPath.slice(0, dqnCurrentIndex + 1);
-      if (pathUpToCurrent.some(([r, c]) => r === row && c === col)) {
-        return 'bg-indigo-400';
-      }
+    const cellKey = `${row}-${col}`;
+
+    // 방문한 칸 표시
+    if (dqnVisited.has(cellKey)) {
+      return 'bg-indigo-400';
     }
 
+    // 현재 칸 표시
     if (dqnCurrentCell && dqnCurrentCell[0] === row && dqnCurrentCell[1] === col) {
       return 'bg-violet-400 animate-pulse';
     }
@@ -601,21 +613,27 @@ function App() {
             </div>
             <div className="text-indigo-600">
               <p><strong>DQN</strong></p>
-              <p>계산됨</p>
+              <p>방문한 셀: {dqnVisited.size}개</p>
               <p>최종 경로: {dqnPath.length}스텝</p>
             </div>
           </div>
           <div className="mt-3 text-center">
             {(() => {
-              const paths = [
-                { name: 'BFS', length: bfsFinalPath.length, color: 'text-blue-600' },
-                { name: 'DFS', length: dfsFinalPath.length, color: 'text-purple-600' },
-                { name: 'Dijkstra', length: dijkstraFinalPath.length, color: 'text-emerald-600' },
-                { name: 'DQN', length: dqnPath.length, color: 'text-indigo-600' }
-              ].filter(p => p.length > 0).sort((a, b) => a.length - b.length);
+              const results = [
+                { name: 'BFS', steps: bfsFinalPath.length, visited: bfsVisited.size, color: 'text-blue-600' },
+                { name: 'DFS', steps: dfsFinalPath.length, visited: dfsVisited.size, color: 'text-purple-600' },
+                { name: 'Dijkstra', steps: dijkstraFinalPath.length, visited: dijkstraVisited.size, color: 'text-emerald-600' },
+                { name: 'DQN', steps: dqnPath.length, visited: dqnVisited.size, color: 'text-indigo-600' }
+              ].filter(p => p.steps > 0)
+               // 1차: 스텝으로 정렬, 2차: 방문으로 정렬
+               .sort((a, b) => {
+                 if (a.steps !== b.steps) return a.steps - b.steps;
+                 return a.visited - b.visited;
+               });
 
-              if (paths.length > 0) {
-                return <p className={`font-bold ${paths[0].color}`}>🏆 {paths[0].name} 최단경로 우승! ({paths[0].length}스텝)</p>;
+              if (results.length > 0) {
+                const winner = results[0];
+                return <p className={`font-bold ${winner.color}`}>🏆 {winner.name} 우승! ({winner.steps}스텝, 방문 {winner.visited}개)</p>;
               }
               return null;
             })()}
