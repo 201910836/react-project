@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 import { runBFS, runDFS, runDijkstra } from './pathfindingAlgorithms';
 import { getMapDataFromResponse } from './mapDataConverter';
+import Spinner from './components/Spinner';
+import Toast from './components/Toast';
 
 function App() {
   const [map, setMap] = useState([]);
   const [mapSize, setMapSize] = useState(0);
   const [start, setStart] = useState(null);
   const [goal, setGoal] = useState(null);
-  
+
   // BFS 상태
   const [bfsVisited, setBfsVisited] = useState(new Set());
   const [bfsCurrentCell, setBfsCurrentCell] = useState(null);
   const [bfsFinalPath, setBfsFinalPath] = useState([]);
   const [bfsFinished, setBfsFinished] = useState(false);
-  
+
   // DFS 상태
   const [dfsVisited, setDfsVisited] = useState(new Set());
   const [dfsCurrentCell, setDfsCurrentCell] = useState(null);
@@ -37,46 +39,16 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [speed, setSpeed] = useState(100);
 
-  useEffect(() => {
-    const fetchMapData = async () => {
-      try {
-        console.log('맵 데이터 요청 시작...');
-        const response = await fetch('https://9c41e93b-be0c-4a6f-b48c-e3e8b4ceab28.mock.pstmn.io/maps');
-        console.log('응답 상태:', response.status, response.ok);
+  // 로딩 상태
+  const [isLoadingMap, setIsLoadingMap] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('백엔드에서 받은 데이터:', data);
-
-          const mapData = getMapDataFromResponse(data);
-          console.log('파싱된 맵 데이터:', mapData);
-
-          setMap(mapData.grid);
-          setStart(mapData.start);
-          setGoal(mapData.goal);
-          setMapSize(mapData.mapSize);
-
-          console.log('맵 데이터 설정 완료:', {
-            gridSize: mapData.grid.length,
-            start: mapData.start,
-            goal: mapData.goal,
-            mapSize: mapData.mapSize
-          });
-        } else {
-          console.warn('백엔드에서 맵을 받아올 수 없습니다. 상태:', response.status);
-        }
-      } catch (error) {
-        console.error('서버에서 맵을 가져오는데 실패했습니다:', error);
-      }
-    };
-
-    fetchMapData();
-  }, []);
 
 
   // 3개 알고리즘 동시 탐색 시작
   const startTripleSearch = async () => {
     setIsSearching(true);
+    setLoadingMessage('길 찾기 중입니다...');
 
     // 모든 상태 초기화
     setBfsVisited(new Set());
@@ -103,7 +75,7 @@ function App() {
     // 백엔드에서 DQN 경로 데이터 받아오기
     let dqnPathData = [];
     try {
-      const response = await fetch('https://9c41e93b-be0c-4a6f-b48c-e3e8b4ceab28.mock.pstmn.io/path');
+      const response = await fetch('http://rlatkdrud99.iptime.org:8080/api/path-results/infer-map');
       if (response.ok) {
         const data = await response.json();
         // path, Path, Path (index) 형식으로 받아온 경로를 [row, col] 형식으로 변환
@@ -128,6 +100,7 @@ function App() {
     }
 
     setDqnPath(dqnPathData);
+    setLoadingMessage('경로 검색 중입니다...');
 
     // BFS, DFS, Dijkstra, DQN을 동시에 실행
     try {
@@ -178,6 +151,7 @@ function App() {
       console.log('Search stopped');
     } finally {
       setIsSearching(false);
+      setLoadingMessage('');
     }
   };
 
@@ -209,25 +183,33 @@ function App() {
 
   // 맵 생성
   const handleNewMap = async () => {
-    if (isSearching) return;
+    if (isSearching || isLoadingMap) return;
+
+    setIsLoadingMap(true);
+    setLoadingMessage('새 도로맵을 생성 중입니다...');
 
     try {
-      const response = await fetch('https://9c41e93b-be0c-4a6f-b48c-e3e8b4ceab28.mock.pstmn.io/maps');
+      const response = await fetch('http://rlatkdrud99.iptime.org:8080/api/path-results/generate-map');
       if (response.ok) {
         const data = await response.json();
+        console.log('백엔드에서 받은 데이터:', data);
         const mapData = getMapDataFromResponse(data);
         setMap(mapData.grid);
         setStart(mapData.start);
         setGoal(mapData.goal);
         setMapSize(mapData.mapSize);
+        setLoadingMessage('도로맵 생성 완료!');
       } else {
         console.warn('백엔드에서 맵을 받아올 수 없습니다.');
+        setLoadingMessage('도로맵 생성 실패');
       }
     } catch (error) {
       console.error('서버에서 맵을 가져오는데 실패했습니다:', error);
+      setLoadingMessage('서버 연결 오류');
+    } finally {
+      setIsLoadingMap(false);
+      resetAll();
     }
-
-    resetAll();
   };
 
   // 전체 리셋
@@ -362,6 +344,11 @@ function App() {
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white">
+      {/* 스피너: 맵 로딩할 때만 */}
+      <Spinner isVisible={isLoadingMap} message={loadingMessage} />
+      {/* 토스트: 알고리즘 검색 중일 때 */}
+      <Toast isVisible={isSearching} message={loadingMessage} />
+
       <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
          dqn vs 전통적 알고리즘 대결! 🥊
       </h1>

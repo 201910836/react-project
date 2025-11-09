@@ -20,12 +20,13 @@
 
 export const parseMapData = (data) => {
   try {
+    // "grid" 또는 "map" 필드 지원
+    const grid = data.grid || data.map;
+
     // 입력값이 없거나 grid가 없으면 null 반환
-    if (!data || !data.grid || !Array.isArray(data.grid)) {
+    if (!grid || !Array.isArray(grid)) {
       return null;
     }
-
-    const grid = data.grid;
     const rows = grid.length;
     const cols = rows > 0 ? grid[0].length : 0;
 
