@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { runBFS, runDFS, runDijkstra } from './pathfindingAlgorithms';
 import { getMapDataFromResponse } from './mapDataConverter';
 import Spinner from './components/Spinner';
 import Toast from './components/Toast';
 
 function App() {
+  // 알고리즘 취소 신호
+  const cancelledRef = useRef(false);
+
   const [map, setMap] = useState([]);
   const [mapSize, setMapSize] = useState(0);
   const [start, setStart] = useState(null);
@@ -38,6 +41,7 @@ function App() {
   // 공통 상태
   const [isSearching, setIsSearching] = useState(false);
   const [speed, setSpeed] = useState(100);
+  const [isCancelled, setIsCancelled] = useState(false);
 
   // 로딩 상태
   const [isLoadingMap, setIsLoadingMap] = useState(false);
@@ -48,6 +52,8 @@ function App() {
   // 3개 알고리즘 동시 탐색 시작
   const startTripleSearch = async () => {
     setIsSearching(true);
+    setIsCancelled(false);
+    cancelledRef.current = false;
     setLoadingMessage('길 찾기 중입니다...');
 
     // 모든 상태 초기화
@@ -114,7 +120,8 @@ function App() {
           setBfsCurrentCell,
           setBfsVisited,
           setBfsFinalPath,
-          setBfsFinished
+          setBfsFinished,
+          cancelledRef
         ),
         runDFS(
           map,
@@ -125,7 +132,8 @@ function App() {
           setDfsCurrentCell,
           setDfsVisited,
           setDfsFinalPath,
-          setDfsFinished
+          setDfsFinished,
+          cancelledRef
         ),
         runDijkstra(
           map,
@@ -136,7 +144,8 @@ function App() {
           setDijkstraCurrentCell,
           setDijkstraVisited,
           setDijkstraFinalPath,
-          setDijkstraFinished
+          setDijkstraFinished,
+          cancelledRef
         ),
         runDQNPath(
           dqnPathData,
@@ -144,7 +153,8 @@ function App() {
           setDqnCurrentCell,
           setDqnCurrentIndex,
           setDqnVisited,
-          setDqnFinished
+          setDqnFinished,
+          cancelledRef
         )
       ]);
     } catch (error) {
@@ -156,7 +166,7 @@ function App() {
   };
 
   // DQN 경로 실행
-  const runDQNPath = async (path, speed, setCurrentCell, setCurrentIndex, setVisited, setFinished) => {
+  const runDQNPath = async (path, speed, setCurrentCell, setCurrentIndex, setVisited, setFinished, cancelledRef) => {
     if (!path || path.length === 0) {
       setFinished(true);
       return;
@@ -164,6 +174,8 @@ function App() {
 
     const visitedSet = new Set();
     for (let i = 0; i < path.length; i++) {
+      if (cancelledRef.current) return;
+
       const [row, col] = path[i];
       const cellKey = `${row}-${col}`;
 
@@ -198,6 +210,8 @@ function App() {
         setStart(mapData.start);
         setGoal(mapData.goal);
         setMapSize(mapData.mapSize);
+        // 알고리즘 상태만 초기화
+        resetAlgorithmStates();
         setLoadingMessage('도로맵 생성 완료!');
       } else {
         console.warn('백엔드에서 맵을 받아올 수 없습니다.');
@@ -208,13 +222,44 @@ function App() {
       setLoadingMessage('서버 연결 오류');
     } finally {
       setIsLoadingMap(false);
-      resetAll();
     }
+  };
+
+  // 알고리즘 상태만 초기화
+  const resetAlgorithmStates = () => {
+    setIsSearching(false);
+    setIsCancelled(false);
+    setBfsVisited(new Set());
+    setBfsCurrentCell(null);
+    setBfsFinalPath([]);
+    setBfsFinished(false);
+    setDfsVisited(new Set());
+    setDfsCurrentCell(null);
+    setDfsFinalPath([]);
+    setDfsFinished(false);
+    setDijkstraVisited(new Set());
+    setDijkstraCurrentCell(null);
+    setDijkstraFinalPath([]);
+    setDijkstraFinished(false);
+    setDqnPath([]);
+    setDqnVisited(new Set());
+    setDqnCurrentCell(null);
+    setDqnCurrentIndex(0);
+    setDqnFinished(false);
   };
 
   // 전체 리셋
   const resetAll = () => {
     setIsSearching(false);
+    setIsCancelled(true);
+    cancelledRef.current = true;
+    setLoadingMessage('');
+    // 맵 초기화
+    setMap([]);
+    setStart(null);
+    setGoal(null);
+    setMapSize(0);
+    // 알고리즘 상태 초기화
     setBfsVisited(new Set());
     setBfsCurrentCell(null);
     setBfsFinalPath([]);
@@ -343,290 +388,294 @@ function App() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white">
+    <div className="min-h-screen p-6 bg-white">
       {/* 스피너: 맵 로딩할 때만 */}
       <Spinner isVisible={isLoadingMap} message={loadingMessage} />
       {/* 토스트: 알고리즘 검색 중일 때 */}
       <Toast isVisible={isSearching} message={loadingMessage} />
 
-      <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-         dqn vs 전통적 알고리즘 대결! 🥊
-      </h1>
-      
-      {/* 컨트롤 패널 */}
-      <div className="flex justify-center gap-4 mb-6 flex-wrap">
-        <button 
-          onClick={handleNewMap}
-          disabled={isSearching}
-          className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-400"
-        >
-          새 도로맵 생성
-        </button>
-        
-        <button
-          onClick={startTripleSearch}
-          disabled={isSearching}
-          className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400"
-        >
-          {isSearching ? '3자 대결 중...' : '🚀 3자 대결 시작!'}
-        </button>
-        
-        <button 
-          onClick={resetAll}
-          className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          리셋
-        </button>
-      </div>
+      {/* 제목, 버튼, 속도 */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">
+          dqn vs 전통적 알고리즘 대결! 🥊
+        </h1>
 
-      {/* 속도 조절 */}
-      <div className="flex justify-center items-center gap-4 mb-6">
-        <label className="text-sm font-medium">탐색 속도:</label>
-        <input
-          type="range"
-          min="10"
-          max="500"
-          value={speed}
-          onChange={(e) => setSpeed(parseInt(e.target.value))}
-          disabled={isSearching}
-          className="w-32"
-        />
-        <span className="text-sm text-gray-600">{speed}ms</span>
-      </div>
+        {/* 컨트롤 패널 */}
+        <div className="flex justify-center gap-4 mb-4 flex-wrap">
+          <button
+            onClick={handleNewMap}
+            disabled={isSearching}
+            className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-400"
+          >
+            새 도로맵 생성
+          </button>
 
+          <button
+            onClick={startTripleSearch}
+            disabled={isSearching}
+            className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400"
+          >
+            {isSearching ? '3자 대결 중...' : '🚀 3자 대결 시작!'}
+          </button>
 
-      {/* 4분할 맵 그리드 */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* BFS 맵 */}
-        <div className="flex flex-col items-center">
-          <div className="mb-3 text-center">
-            <h3 className="text-lg font-bold text-blue-600 mb-2">BFS (너비 우선 탐색)</h3>
-            <div className="flex justify-center gap-2 text-xs flex-wrap">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-yellow-400 rounded"></div>
-                <span>현재</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-orange-200 rounded"></div>
-                <span>방문</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-blue-400 rounded"></div>
-                <span>경로</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-center overflow-auto">
-            <div
-              className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-blue-400"
-              style={{
-                gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
-                width: 'fit-content'
-              }}
-            >
-              {map.map((row, rowIndex) =>
-                row.map((cell, colIndex) => (
-                  <div
-                    key={`bfs-${rowIndex}-${colIndex}`}
-                    className={`w-2 h-2 ${getBfsCellColor(rowIndex, colIndex)} border-gray-400`}
-                    style={{ borderWidth: '0.25px' }}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-          <div className="mt-2 text-center text-sm">
-            <p className="font-bold text-blue-600">
-              방문: {bfsVisited.size}개 | 경로: {bfsFinalPath.length}스텝
-            </p>
-            {bfsFinished && <p className="text-green-600">✅ 완료!</p>}
-          </div>
+          <button
+            onClick={resetAll}
+            className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            리셋
+          </button>
         </div>
 
-        {/* DFS 맵 */}
-        <div className="flex flex-col items-center">
-          <div className="mb-3 text-center">
-            <h3 className="text-lg font-bold text-purple-600 mb-2">DFS (깊이 우선 탐색)</h3>
-            <div className="flex justify-center gap-2 text-xs flex-wrap">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-pink-400 rounded"></div>
-                <span>현재</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-pink-200 rounded"></div>
-                <span>방문</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-purple-400 rounded"></div>
-                <span>경로</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-center overflow-auto">
-            <div
-              className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-purple-400"
-              style={{
-                gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
-                width: 'fit-content'
-              }}
-            >
-              {map.map((row, rowIndex) =>
-                row.map((cell, colIndex) => (
-                  <div
-                    key={`dfs-${rowIndex}-${colIndex}`}
-                    className={`w-2 h-2 ${getDfsCellColor(rowIndex, colIndex)} border-gray-400`}
-                    style={{ borderWidth: '0.25px' }}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-          <div className="mt-2 text-center text-sm">
-            <p className="font-bold text-purple-600">
-              방문: {dfsVisited.size}개 | 경로: {dfsFinalPath.length}스텝
-            </p>
-            {dfsFinished && <p className="text-green-600">✅ 완료!</p>}
-          </div>
-        </div>
-
-        {/* Dijkstra 맵 */}
-        <div className="flex flex-col items-center">
-          <div className="mb-3 text-center">
-            <h3 className="text-lg font-bold text-emerald-600 mb-2">Dijkstra (다익스트라)</h3>
-            <div className="flex justify-center gap-2 text-xs flex-wrap">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-teal-400 rounded"></div>
-                <span>현재</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-teal-200 rounded"></div>
-                <span>방문</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-emerald-400 rounded"></div>
-                <span>경로</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-center overflow-auto">
-            <div
-              className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-emerald-400"
-              style={{
-                gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
-                width: 'fit-content'
-              }}
-            >
-              {map.map((row, rowIndex) =>
-                row.map((cell, colIndex) => (
-                  <div
-                    key={`dijkstra-${rowIndex}-${colIndex}`}
-                    className={`w-2 h-2 ${getDijkstraCellColor(rowIndex, colIndex)} border-gray-400`}
-                    style={{ borderWidth: '0.25px' }}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-          <div className="mt-2 text-center text-sm">
-            <p className="font-bold text-emerald-600">
-              방문: {dijkstraVisited.size}개 | 경로: {dijkstraFinalPath.length}스텝
-            </p>
-            {dijkstraFinished && <p className="text-green-600">✅ 완료!</p>}
-          </div>
-        </div>
-
-        {/* DQN 맵 */}
-        <div className="flex flex-col items-center">
-          <div className="mb-3 text-center">
-            <h3 className="text-lg font-bold text-indigo-600 mb-2">DQN (딥큐네트워크)</h3>
-            <div className="flex justify-center gap-2 text-xs flex-wrap">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-violet-400 rounded"></div>
-                <span>현재</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-indigo-400 rounded"></div>
-                <span>경로</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-center overflow-auto">
-            <div
-              className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-indigo-400"
-              style={{
-                gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
-                width: 'fit-content'
-              }}
-            >
-              {map.map((row, rowIndex) =>
-                row.map((cell, colIndex) => (
-                  <div
-                    key={`dqn-${rowIndex}-${colIndex}`}
-                    className={`w-2 h-2 ${getDQNCellColor(rowIndex, colIndex)} border-gray-400`}
-                    style={{ borderWidth: '0.25px' }}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-          <div className="mt-2 text-center text-sm">
-            <p className="font-bold text-indigo-600">
-              방문: {dqnVisited.size}개 {dqnFinished && `| 경로: ${dqnPath.length}스텝`}
-            </p>
-            {dqnFinished && <p className="text-green-600">✅ 완료!</p>}
-          </div>
+        {/* 속도 조절 */}
+        <div className="flex justify-center items-center gap-4">
+          <label className="text-sm font-medium">탐색 속도:</label>
+          <input
+            type="range"
+            min="10"
+            max="500"
+            value={speed}
+            onChange={(e) => setSpeed(parseInt(e.target.value))}
+            disabled={isSearching}
+            className="w-32"
+          />
+          <span className="text-sm text-gray-600">{speed}ms</span>
         </div>
       </div>
 
-      {/* 4자 대결 결과 */}
-      {bfsFinished && dfsFinished && dijkstraFinished && dqnFinished && (
-        <div className="mt-6 text-center p-4 bg-gray-100 rounded-lg">
-          <h3 className="text-xl font-bold mb-2">🏆 4자 대결 결과</h3>
-          <div className="grid grid-cols-4 gap-4 text-sm">
-            <div className="text-blue-600">
-              <p><strong>BFS</strong></p>
-              <p>방문한 셀: {bfsVisited.size}개</p>
-              <p>최종 경로: {bfsFinalPath.length}스텝</p>
+      {/* 4분할 맵 그리드 + 결과 */}
+      <div className="flex gap-6">
+        {/* 맵 그리드 */}
+        <div className="grid grid-cols-2 gap-6 flex-1">
+          {/* BFS 맵 */}
+          <div className="flex flex-col items-center">
+            <div className="mb-3 text-center">
+              <h3 className="text-lg font-bold text-blue-600 mb-2">BFS (너비 우선 탐색)</h3>
+              <div className="flex justify-center gap-2 text-xs flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-yellow-400 rounded"></div>
+                  <span>현재</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-orange-200 rounded"></div>
+                  <span>방문</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-400 rounded"></div>
+                  <span>경로</span>
+                </div>
+              </div>
             </div>
-            <div className="text-purple-600">
-              <p><strong>DFS</strong></p>
-              <p>방문한 셀: {dfsVisited.size}개</p>
-              <p>최종 경로: {dfsFinalPath.length}스텝</p>
+            <div className="flex justify-center overflow-auto">
+              <div
+                className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-blue-400"
+                style={{
+                  gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
+                  width: 'fit-content'
+                }}
+              >
+                {map.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <div
+                      key={`bfs-${rowIndex}-${colIndex}`}
+                      className={`w-4 h-4 ${getBfsCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ borderWidth: '0.25px' }}
+                    />
+                  ))
+                )}
+              </div>
             </div>
-            <div className="text-emerald-600">
-              <p><strong>Dijkstra</strong></p>
-              <p>방문한 셀: {dijkstraVisited.size}개</p>
-              <p>최종 경로: {dijkstraFinalPath.length}스텝</p>
-            </div>
-            <div className="text-indigo-600">
-              <p><strong>DQN</strong></p>
-              <p>방문한 셀: {dqnVisited.size}개</p>
-              <p>최종 경로: {dqnPath.length}스텝</p>
+            <div className="mt-2 text-center text-sm">
+              <p className="font-bold text-blue-600">
+                방문: {bfsVisited.size}개 | 경로: {bfsFinalPath.length}스텝
+              </p>
+              {bfsFinished && <p className="text-green-600">✅ 완료!</p>}
             </div>
           </div>
-          <div className="mt-3 text-center">
-            {(() => {
-              const results = [
-                { name: 'BFS', steps: bfsFinalPath.length, visited: bfsVisited.size, color: 'text-blue-600' },
-                { name: 'DFS', steps: dfsFinalPath.length, visited: dfsVisited.size, color: 'text-purple-600' },
-                { name: 'Dijkstra', steps: dijkstraFinalPath.length, visited: dijkstraVisited.size, color: 'text-emerald-600' },
-                { name: 'DQN', steps: dqnPath.length, visited: dqnVisited.size, color: 'text-indigo-600' }
-              ].filter(p => p.steps > 0)
-               // 1차: 스텝으로 정렬, 2차: 방문으로 정렬
-               .sort((a, b) => {
-                 if (a.steps !== b.steps) return a.steps - b.steps;
-                 return a.visited - b.visited;
-               });
 
-              if (results.length > 0) {
-                const winner = results[0];
-                return <p className={`font-bold ${winner.color}`}>🏆 {winner.name} 우승! ({winner.steps}스텝, 방문 {winner.visited}개)</p>;
-              }
-              return null;
-            })()}
+          {/* DFS 맵 */}
+          <div className="flex flex-col items-center">
+            <div className="mb-3 text-center">
+              <h3 className="text-lg font-bold text-purple-600 mb-2">DFS (깊이 우선 탐색)</h3>
+              <div className="flex justify-center gap-2 text-xs flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-pink-400 rounded"></div>
+                  <span>현재</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-pink-200 rounded"></div>
+                  <span>방문</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-purple-400 rounded"></div>
+                  <span>경로</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center overflow-auto">
+              <div
+                className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-purple-400"
+                style={{
+                  gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
+                  width: 'fit-content'
+                }}
+              >
+                {map.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <div
+                      key={`dfs-${rowIndex}-${colIndex}`}
+                      className={`w-4 h-4 ${getDfsCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ borderWidth: '0.25px' }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="mt-2 text-center text-sm">
+              <p className="font-bold text-purple-600">
+                방문: {dfsVisited.size}개 | 경로: {dfsFinalPath.length}스텝
+              </p>
+              {dfsFinished && <p className="text-green-600">✅ 완료!</p>}
+            </div>
+          </div>
+
+          {/* Dijkstra 맵 */}
+          <div className="flex flex-col items-center">
+            <div className="mb-3 text-center">
+              <h3 className="text-lg font-bold text-emerald-600 mb-2">Dijkstra (다익스트라)</h3>
+              <div className="flex justify-center gap-2 text-xs flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-teal-400 rounded"></div>
+                  <span>현재</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-teal-200 rounded"></div>
+                  <span>방문</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-emerald-400 rounded"></div>
+                  <span>경로</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center overflow-auto">
+              <div
+                className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-emerald-400"
+                style={{
+                  gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
+                  width: 'fit-content'
+                }}
+              >
+                {map.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <div
+                      key={`dijkstra-${rowIndex}-${colIndex}`}
+                      className={`w-4 h-4 ${getDijkstraCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ borderWidth: '0.25px' }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="mt-2 text-center text-sm">
+              <p className="font-bold text-emerald-600">
+                방문: {dijkstraVisited.size}개 | 경로: {dijkstraFinalPath.length}스텝
+              </p>
+              {dijkstraFinished && <p className="text-green-600">✅ 완료!</p>}
+            </div>
+          </div>
+
+          {/* DQN 맵 */}
+          <div className="flex flex-col items-center">
+            <div className="mb-3 text-center">
+              <h3 className="text-lg font-bold text-indigo-600 mb-2">DQN (딥큐네트워크)</h3>
+              <div className="flex justify-center gap-2 text-xs flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-violet-400 rounded"></div>
+                  <span>현재</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-indigo-400 rounded"></div>
+                  <span>경로</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center overflow-auto">
+              <div
+                className="grid gap-0 p-2 bg-gray-300 rounded-lg border-2 border-indigo-400"
+                style={{
+                  gridTemplateColumns: `repeat(${mapSize}, 1fr)`,
+                  width: 'fit-content'
+                }}
+              >
+                {map.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <div
+                      key={`dqn-${rowIndex}-${colIndex}`}
+                      className={`w-4 h-4 ${getDQNCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ borderWidth: '0.25px' }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="mt-2 text-center text-sm">
+              <p className="font-bold text-indigo-600">
+                방문: {dqnVisited.size}개 {dqnFinished && `| 경로: ${dqnPath.length}스텝`}
+              </p>
+              {dqnFinished && <p className="text-green-600">✅ 완료!</p>}
+            </div>
           </div>
         </div>
-      )}
+
+        {/* 4자 대결 결과 - 오른쪽 */}
+        {bfsFinished && dfsFinished && dijkstraFinished && dqnFinished && (
+          <div className="w-1/4 p-4 bg-gray-100 rounded-lg h-fit">
+            <h3 className="text-xl font-bold mb-4 text-center">🏆 4자 대결 결과</h3>
+            <div className="space-y-3">
+              <div className="text-blue-600 border-b pb-2">
+                <p><strong>BFS</strong></p>
+                <p>방문: {bfsVisited.size}개</p>
+                <p>경로: {bfsFinalPath.length}스텝</p>
+              </div>
+              <div className="text-purple-600 border-b pb-2">
+                <p><strong>DFS</strong></p>
+                <p>방문: {dfsVisited.size}개</p>
+                <p>경로: {dfsFinalPath.length}스텝</p>
+              </div>
+              <div className="text-emerald-600 border-b pb-2">
+                <p><strong>Dijkstra</strong></p>
+                <p>방문: {dijkstraVisited.size}개</p>
+                <p>경로: {dijkstraFinalPath.length}스텝</p>
+              </div>
+              <div className="text-indigo-600 border-b pb-2">
+                <p><strong>DQN</strong></p>
+                <p>방문: {dqnVisited.size}개</p>
+                <p>경로: {dqnPath.length}스텝</p>
+              </div>
+              <div className="mt-4 pt-2 text-center">
+                {(() => {
+                  const results = [
+                    { name: 'BFS', steps: bfsFinalPath.length, visited: bfsVisited.size, color: 'text-blue-600' },
+                    { name: 'DFS', steps: dfsFinalPath.length, visited: dfsVisited.size, color: 'text-purple-600' },
+                    { name: 'Dijkstra', steps: dijkstraFinalPath.length, visited: dijkstraVisited.size, color: 'text-emerald-600' },
+                    { name: 'DQN', steps: dqnPath.length, visited: dqnVisited.size, color: 'text-indigo-600' }
+                  ].filter(p => p.steps > 0)
+                   .sort((a, b) => {
+                     if (a.steps !== b.steps) return a.steps - b.steps;
+                     return a.visited - b.visited;
+                   });
+
+                  if (results.length > 0) {
+                    const winner = results[0];
+                    return <p className={`font-bold ${winner.color}`}>🥇 {winner.name}</p>;
+                  }
+                  return null;
+                })()}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 공통 범례 */}
       <div className="mt-4 flex justify-center gap-4 text-sm">

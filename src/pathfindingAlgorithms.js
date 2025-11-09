@@ -1,19 +1,22 @@
 export const runBFS = async (
-  map, 
-  mapSize, 
-  start, 
-  goal, 
-  speed, 
+  map,
+  mapSize,
+  start,
+  goal,
+  speed,
   setBfsCurrentCell,
   setBfsVisited,
   setBfsFinalPath,
-  setBfsFinished
+  setBfsFinished,
+  cancelledRef
 ) => {
   const queue = [[start[0], start[1], []]];
   const visitedSet = new Set();
   const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 
   while (queue.length > 0) {
+    if (cancelledRef.current) return;
+
     const [row, col, path] = queue.shift();
     const cellKey = `${row}-${col}`;
 
@@ -62,13 +65,16 @@ export const runDFS = async (
   setDfsCurrentCell,
   setDfsVisited,
   setDfsFinalPath,
-  setDfsFinished
+  setDfsFinished,
+  cancelledRef
 ) => {
   const stack = [[start[0], start[1], []]];
   const visitedSet = new Set();
   const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 
   while (stack.length > 0) {
+    if (cancelledRef.current) return;
+
     const [row, col, path] = stack.pop();
     const cellKey = `${row}-${col}`;
 
@@ -118,7 +124,8 @@ export const runDijkstra = async (
   setDijkstraCurrentCell,
   setDijkstraVisited,
   setDijkstraFinalPath,
-  setDijkstraFinished
+  setDijkstraFinished,
+  cancelledRef
 ) => {
   const distances = {};
   const previous = {};
@@ -138,6 +145,8 @@ export const runDijkstra = async (
   }
 
   while (unvisited.size > 0) {
+    if (cancelledRef.current) return;
+
     let currentKey = null;
     let minDistance = Infinity;
 
