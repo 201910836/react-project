@@ -395,32 +395,32 @@ function App() {
       <Toast isVisible={isSearching} message={loadingMessage} />
 
       {/* 제목, 버튼, 속도 */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">
-          dqn vs 전통적 알고리즘 대결! 🥊
+      <div className="mb-3">
+        <h1 className="text-xl font-bold text-center mb-2 text-gray-800">
+          DQN vs 전통
         </h1>
 
         {/* 컨트롤 패널 */}
-        <div className="flex justify-center gap-4 mb-4 flex-wrap">
+        <div className="flex justify-center gap-3 mb-3 flex-wrap">
           <button
             onClick={handleNewMap}
             disabled={isSearching}
-            className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-400"
+            className="px-4 py-1 text-sm bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-400"
           >
-            새 도로맵 생성
+            맵 생성
           </button>
 
           <button
             onClick={startTripleSearch}
             disabled={isSearching}
-            className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400"
+            className="px-4 py-1 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400"
           >
-            {isSearching ? '3자 대결 중...' : '🚀 3자 대결 시작!'}
+            {isSearching ? '진행중...' : '시작'}
           </button>
 
           <button
             onClick={resetAll}
-            className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+            className="px-4 py-1 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
           >
             리셋
           </button>
@@ -477,8 +477,8 @@ function App() {
                   row.map((cell, colIndex) => (
                     <div
                       key={`bfs-${rowIndex}-${colIndex}`}
-                      className={`w-4 h-4 ${getBfsCellColor(rowIndex, colIndex)} border-gray-400`}
-                      style={{ borderWidth: '0.25px' }}
+                      className={`${getBfsCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ width: '18px', height: '18px', borderWidth: '0.25px' }}
                     />
                   ))
                 )}
@@ -523,8 +523,8 @@ function App() {
                   row.map((cell, colIndex) => (
                     <div
                       key={`dfs-${rowIndex}-${colIndex}`}
-                      className={`w-4 h-4 ${getDfsCellColor(rowIndex, colIndex)} border-gray-400`}
-                      style={{ borderWidth: '0.25px' }}
+                      className={`${getDfsCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ width: '18px', height: '18px', borderWidth: '0.25px' }}
                     />
                   ))
                 )}
@@ -569,8 +569,8 @@ function App() {
                   row.map((cell, colIndex) => (
                     <div
                       key={`dijkstra-${rowIndex}-${colIndex}`}
-                      className={`w-4 h-4 ${getDijkstraCellColor(rowIndex, colIndex)} border-gray-400`}
-                      style={{ borderWidth: '0.25px' }}
+                      className={`${getDijkstraCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ width: '18px', height: '18px', borderWidth: '0.25px' }}
                     />
                   ))
                 )}
@@ -611,8 +611,8 @@ function App() {
                   row.map((cell, colIndex) => (
                     <div
                       key={`dqn-${rowIndex}-${colIndex}`}
-                      className={`w-4 h-4 ${getDQNCellColor(rowIndex, colIndex)} border-gray-400`}
-                      style={{ borderWidth: '0.25px' }}
+                      className={`${getDQNCellColor(rowIndex, colIndex)} border-gray-400`}
+                      style={{ width: '18px', height: '18px', borderWidth: '0.25px' }}
                     />
                   ))
                 )}
