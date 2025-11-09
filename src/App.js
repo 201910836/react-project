@@ -571,7 +571,7 @@ function App() {
           </div>
           <div className="mt-2 text-center text-sm">
             <p className="font-bold text-indigo-600">
-              방문: {dqnVisited.size}개 | 경로: {dqnPath.length}스텝
+              방문: {dqnVisited.size}개 {dqnFinished && `| 경로: ${dqnPath.length}스텝`}
             </p>
             {dqnFinished && <p className="text-green-600">✅ 완료!</p>}
           </div>
